@@ -1,0 +1,17 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  build-app:
+    cmds:
+      - docker run --rm -it -v {{.USER_WORKING_DIR}}:/go/src golang:1.21-bullseye go build -C /go/src -buildvcs=false -o dist/e-ink-dashboard ./...
+    silent: true
+
+  build-container:
+    cmds:
+      - docker build -t e-ink-dashboard:latest .
+    silent: true
