@@ -43,7 +43,7 @@ func getClient(config *oauth2.Config) *http.Client {
 func callbackServer(config *oauth2.Config) {
 	mux := http.NewServeMux()
 	srv := http.Server{
-		Addr:    "localhost:8080",
+		Addr:    ":8080",
 		Handler: mux,
 	}
 
