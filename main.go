@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	TOKEN_FILE string = "/var/lib/e-ink-dashboard/token.json"
+	TOKEN_FILE string = "token.json"
 )
 
 var (
