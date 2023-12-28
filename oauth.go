@@ -50,7 +50,10 @@ func callbackServer(config *oauth2.Config) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		authCode := r.FormValue("code")
 		if authCode == "" {
+      slog.Warn("got request on callback listener that i could not understand",
+        "uri", r.RequestURI)
 			w.WriteHeader(http.StatusBadRequest)
+      w.Write([]byte("No code provided"))
 			return
 		}
 
