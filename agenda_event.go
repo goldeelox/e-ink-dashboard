@@ -40,5 +40,5 @@ func convertEventTime(e ProcessedEvent) string {
 	if e.AllDay {
 		return "All day"
 	}
-	return time.Unix(e.Time, 0).Format(time.Kitchen)
+	return time.Unix(e.Time, 0).Local().Format(time.Kitchen)
 }
