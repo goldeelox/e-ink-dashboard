@@ -12,18 +12,19 @@ import (
 	"google.golang.org/api/option"
 )
 
+func prettyDateOnly(d string) string {
+	t, err := time.Parse(time.DateOnly, d)
+	if err != nil {
+		slog.Error("unable to parse date string. expecting time.DateOnly", "date", d, "error", err)
+	}
+
+	return t.Format("Monday Jan 02")
+}
+
 type Agenda struct {
 	Events          []*calendar.Event
 	ProcessedEvents []ProcessedEvent
 	Service         *calendar.Service
-}
-
-type ProcessedEvent struct {
-	Summary string
-	// date string formatted 2006-01-02
-	Date   string
-	Time   int64
-	AllDay bool
 }
 
 func NewAgenda(client *http.Client, calendarIds []string) *Agenda {
@@ -56,36 +57,6 @@ func (a *Agenda) GetEvents(calendarId string, maxResults int64) {
 	a.Events = append(a.Events, events.Items...)
 }
 
-func parseDateAndTimeFromEvent(e *calendar.Event) *ProcessedEvent {
-	if e.Start.Date != "" {
-		t, _ := time.ParseInLocation(time.DateOnly, e.Start.Date, time.Local)
-		return &ProcessedEvent{
-			Date:   e.Start.Date,
-			Time:   t.Unix(),
-			AllDay: true,
-		}
-	}
-
-	t, err := time.Parse(time.RFC3339, e.Start.DateTime)
-	if err != nil {
-		slog.Error("unable to parse datetime", "error", err)
-	}
-	return &ProcessedEvent{
-		Date:   t.Format(time.DateOnly),
-		Time:   t.Unix(),
-		AllDay: false,
-	}
-}
-
-func prettyDateOnly(d string) string {
-	t, err := time.Parse(time.DateOnly, d)
-	if err != nil {
-		slog.Error("unable to parse date string. expecting time.DateOnly", "date", d, "error", err)
-	}
-
-	return t.Format("Monday Jan 02")
-}
-
 func (a *Agenda) Generate() bytes.Buffer {
 	a.ProcessEvents()
 	a.SortEvents()
@@ -100,7 +71,7 @@ func (a *Agenda) Generate() bytes.Buffer {
 
 		eDate := prettyDateOnly(event.Date)
 		if currentDate != eDate {
-			currentDate = prettyDateOnly(event.Date)
+			currentDate = eDate
 			heading := "\n" + currentDate + "\n"
 			lines += 2
 			output.WriteString(heading)
@@ -125,13 +96,6 @@ func (a *Agenda) ProcessEvents() {
 		pEvent.Summary = fmt.Sprintf("%8s: %s\n", eTime, item.Summary)
 		a.ProcessedEvents = append(a.ProcessedEvents, *pEvent)
 	}
-}
-
-func convertEventTime(e ProcessedEvent) string {
-	if e.AllDay {
-		return "All day"
-	}
-	return time.Unix(e.Time, 0).Format(time.Kitchen)
 }
 
 func (a *Agenda) SortEvents() {
