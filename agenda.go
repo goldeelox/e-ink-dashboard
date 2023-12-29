@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"sort"
 	"time"
 
 	"google.golang.org/api/calendar/v3"
@@ -15,15 +14,16 @@ import (
 
 type Agenda struct {
 	Events          []*calendar.Event
-	Service         *calendar.Service
 	ProcessedEvents []ProcessedEvent
+	Service         *calendar.Service
 }
 
 type ProcessedEvent struct {
 	Summary string
 	// date string formatted 2006-01-02
-	Date string
-	Time string
+	Date   string
+	Time   int64
+	AllDay bool
 }
 
 func NewAgenda(client *http.Client, calendarIds []string) *Agenda {
@@ -56,16 +56,25 @@ func (a *Agenda) GetEvents(calendarId string, maxResults int64) {
 	a.Events = append(a.Events, events.Items...)
 }
 
-func parseDateAndTimeFromEvent(e *calendar.Event) (eventDate string, eventTime string) {
+func parseDateAndTimeFromEvent(e *calendar.Event) *ProcessedEvent {
 	if e.Start.Date != "" {
-		return e.Start.Date, "All day"
+		t, _ := time.ParseInLocation(time.DateOnly, e.Start.Date, time.Local)
+		return &ProcessedEvent{
+			Date:   e.Start.Date,
+			Time:   t.Unix(),
+			AllDay: true,
+		}
 	}
 
 	t, err := time.Parse(time.RFC3339, e.Start.DateTime)
 	if err != nil {
 		slog.Error("unable to parse datetime", "error", err)
 	}
-	return t.Format(time.DateOnly), t.Format(time.Kitchen)
+	return &ProcessedEvent{
+		Date:   t.Format(time.DateOnly),
+		Time:   t.Unix(),
+		AllDay: false,
+	}
 }
 
 func prettyDateOnly(d string) string {
@@ -77,76 +86,63 @@ func prettyDateOnly(d string) string {
 	return t.Format("Monday Jan 02")
 }
 
-func eventsToMap(events []*calendar.Event) map[string][]string {
-	eventMap := make(map[string][]string)
-	for _, item := range events {
-		eDate, eTime := parseDateAndTimeFromEvent(item)
-		eSummary := fmt.Sprintf("%8s: %s\n", eTime, item.Summary)
-		eventMap[eDate] = append(eventMap[eDate], eSummary)
-	}
-	return eventMap
-}
-
-func (a *Agenda) ProcessEvents() bytes.Buffer {
-	// TODO: return []ProcessedEvents
-	if len(a.Events) < 1 {
-		slog.Info("No upcoming events found.")
-		return bytes.Buffer{}
-	}
-
-	agenda := eventsToMap(a.Events)
-	// sort the map keys
-	agendaKeys := make([]string, 0, len(agenda))
-	for k := range agenda {
-		agendaKeys = append(agendaKeys, k)
-	}
-	sort.Strings(agendaKeys)
-
-	var output bytes.Buffer
+func (a *Agenda) Generate() bytes.Buffer {
+	a.ProcessEvents()
+	a.SortEvents()
 	lines := 0
-
-finish:
-	for _, agendaDate := range agendaKeys {
+	var output bytes.Buffer
+	var currentDate string
+	for _, event := range a.ProcessedEvents {
 		if lines >= MaxAgendaLines-2 {
 			slog.Info("no more room in the buffer. ignoring the rest", "lines", lines)
-			break finish
+			break
 		}
-		// TODO: make this controllable in the request payload
-		heading := "\n" + prettyDateOnly(agendaDate) + "\n"
-		lines += 2
 
-		output.WriteString(heading)
-		for _, agendaSummary := range agenda[agendaDate] {
-			if lines >= MaxAgendaLines {
-				slog.Info("no more room in the buffer. ignoring the rest", "lines", lines)
-				break finish
-			}
-			lines++
-			output.WriteString(agendaSummary)
+		eDate := prettyDateOnly(event.Date)
+		if currentDate != eDate {
+			currentDate = prettyDateOnly(event.Date)
+			heading := "\n" + currentDate + "\n"
+			lines += 2
+			output.WriteString(heading)
 		}
+		output.WriteString(event.Summary)
+		lines++
 	}
 
 	slog.Info("full agenda", "size", output.Len())
 	return output
 }
 
-func (a *Agenda) ProcessEventsNew() {
+func (a *Agenda) ProcessEvents() {
 	if len(a.Events) < 1 {
 		slog.Info("No upcoming events found.")
 		return
 	}
 
 	for _, item := range a.Events {
-		eDate, eTime := parseDateAndTimeFromEvent(item)
-		eSummary := fmt.Sprintf("%8s: %s\n", eTime, item.Summary)
-		e := ProcessedEvent{
-			Summary: eSummary,
-			Date:    eDate,
-			Time:    eTime,
-		}
-		a.ProcessedEvents = append(a.ProcessedEvents, e)
+		pEvent := parseDateAndTimeFromEvent(item)
+		eTime := convertEventTime(*pEvent)
+		pEvent.Summary = fmt.Sprintf("%8s: %s\n", eTime, item.Summary)
+		a.ProcessedEvents = append(a.ProcessedEvents, *pEvent)
 	}
 }
 
-// TODO
-func (a *Agenda) SortEvents() {}
+func convertEventTime(e ProcessedEvent) string {
+	if e.AllDay {
+		return "All day"
+	}
+	return time.Unix(e.Time, 0).Format(time.Kitchen)
+}
+
+func (a *Agenda) SortEvents() {
+	eventDate := func(d1, d2 *ProcessedEvent) bool {
+		return d1.Date < d2.Date
+	}
+	eventTime := func(t1, t2 *ProcessedEvent) bool {
+		return t1.Time < t2.Time
+	}
+	eventSummary := func(s1, s2 *ProcessedEvent) bool {
+		return s1.Summary < s2.Summary
+	}
+	OrderedBy(eventDate, eventTime, eventSummary).Sort(a.ProcessedEvents)
+}

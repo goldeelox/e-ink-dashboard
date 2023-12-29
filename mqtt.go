@@ -30,7 +30,7 @@ func mqttClientOptions(broker string) *mqtt.ClientOptions {
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(broker)
 	opts.SetAutoReconnect(true)
-	opts.SetClientID("dashboard-agenda-server")
+	opts.SetClientID("dashboard-agenda-server-test")
 	opts.SetConnectTimeout(5 * time.Second)
 	opts.SetConnectionLostHandler(ConnectionLostHandler)
 	opts.SetMaxReconnectInterval(1 * time.Minute)

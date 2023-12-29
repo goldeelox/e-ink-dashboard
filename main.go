@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -33,8 +32,10 @@ func init() {
 	flag.Parse()
 
 	slog.Info("config parsed",
-		"calendars", CalendarIds.String(),
 		"broker", MqttBroker,
+		"calendars", CalendarIds.String(),
+		"max-agenda-lines", MaxAgendaLines,
+		"topic-namespace", MqttTopicNamespace,
 	)
 	// TODO: check for empty flag
 }
@@ -52,11 +53,7 @@ func main() {
 		)
 
 		agenda := NewAgenda(oauthClient, CalendarIds)
-		out := agenda.ProcessEvents()
-		agenda.ProcessEventsNew()
-		slog.Info("processed events", "events",
-			fmt.Sprintf("%v", agenda.ProcessedEvents),
-		)
+		out := agenda.Generate()
 
 		// send agenda to PUB_TOPIC
 		client.Publish(MqttTopicNamespace+"/response", byte(0), false, out)
