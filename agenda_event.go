@@ -7,6 +7,7 @@ import (
 	"google.golang.org/api/calendar/v3"
 )
 
+// TODO: this should include a time.Time field and methods to return strings formatted how we want
 type ProcessedEvent struct {
 	Summary string
 	// date string formatted 2006-01-02
@@ -41,6 +42,6 @@ func convertEventTime(e ProcessedEvent) string {
 		return "All day"
 	}
 	t, _ := time.Parse(time.DateOnly, e.Date)
-	_, tzOffset := t.Zone()
+	_, tzOffset := t.Local().Zone()
 	return time.Unix(e.Time+int64(tzOffset), 0).Format(time.Kitchen)
 }
