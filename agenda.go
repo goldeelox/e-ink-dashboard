@@ -107,7 +107,7 @@ func (a *Agenda) ProcessEvents() bytes.Buffer {
 
 finish:
 	for _, agendaDate := range agendaKeys {
-		if lines >= maxAgendaLines-2 {
+		if lines >= MaxAgendaLines-2 {
 			slog.Info("no more room in the buffer. ignoring the rest", "lines", lines)
 			break finish
 		}
@@ -117,7 +117,7 @@ finish:
 
 		output.WriteString(heading)
 		for _, agendaSummary := range agenda[agendaDate] {
-			if lines >= maxAgendaLines {
+			if lines >= MaxAgendaLines {
 				slog.Info("no more room in the buffer. ignoring the rest", "lines", lines)
 				break finish
 			}

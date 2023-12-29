@@ -9,16 +9,12 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-const (
-	TOKEN_FILE string = "token.json"
-)
-
 var (
-	mqttBroker         string
-	calendarIds        calendarIdsFlag
-	credentialsFile    string
-	maxAgendaLines     int
-	mqttTopicNamespace string
+	MqttBroker         string
+	CalendarIds        calendarIdsFlag
+	CredentialsFile    string
+	MaxAgendaLines     int
+	MqttTopicNamespace string
 )
 
 func forever() {
@@ -28,17 +24,17 @@ func forever() {
 }
 
 func init() {
-	flag.StringVar(&credentialsFile, "oauth-credentials", "credentials.json", "path to google oauth2 credentials file")
-	flag.StringVar(&mqttBroker, "broker", "", "MQTT broker URI (e.g, mqtt://mqtt.example.com:1883)")
-	flag.StringVar(&mqttTopicNamespace, "topic-namespace", "kitchen/dashboard/agenda",
+	flag.StringVar(&CredentialsFile, "oauth-credentials", "credentials.json", "path to google oauth2 credentials file")
+	flag.StringVar(&MqttBroker, "broker", "", "MQTT broker URI (e.g, mqtt://mqtt.example.com:1883)")
+	flag.StringVar(&MqttTopicNamespace, "topic-namespace", "kitchen/dashboard/agenda",
 		"MQTT topic namespace. Message will be published to and subscribed from <topic-namespace>/response and <topic-namespace>/request respectively")
-	flag.Var(&calendarIds, "calendar-id", "ID of Google calendar to fetch events from. Can be specified multiple times.")
-	flag.IntVar(&maxAgendaLines, "max-agenda-lines", 36, "Maximum lines to return when creating the agenda")
+	flag.Var(&CalendarIds, "calendar-id", "ID of Google calendar to fetch events from. Can be specified multiple times.")
+	flag.IntVar(&MaxAgendaLines, "max-agenda-lines", 36, "Maximum lines to return when creating the agenda")
 	flag.Parse()
 
 	slog.Info("config parsed",
-		"calendars", calendarIds.String(),
-		"broker", mqttBroker,
+		"calendars", CalendarIds.String(),
+		"broker", MqttBroker,
 	)
 	// TODO: check for empty flag
 }
@@ -47,7 +43,7 @@ func main() {
 	oauthClient := NewOauth2Client()
 
 	// mqtt
-	mqOpts := mqttClientOptions(mqttBroker)
+	mqOpts := mqttClientOptions(MqttBroker)
 
 	var RequestMessageHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 		slog.Info("got new message",
@@ -55,7 +51,7 @@ func main() {
 			"msg", string(msg.Payload()),
 		)
 
-		agenda := NewAgenda(oauthClient, calendarIds)
+		agenda := NewAgenda(oauthClient, CalendarIds)
 		out := agenda.ProcessEvents()
 		agenda.ProcessEventsNew()
 		slog.Info("processed events", "events",
@@ -63,12 +59,12 @@ func main() {
 		)
 
 		// send agenda to PUB_TOPIC
-		client.Publish(mqttTopicNamespace+"/response", byte(0), false, out)
+		client.Publish(MqttTopicNamespace+"/response", byte(0), false, out)
 	}
 
 	mqOpts.SetOnConnectHandler(func(client mqtt.Client) {
 		slog.Info("connected to mqtt")
-		client.Subscribe(mqttTopicNamespace+"/request", byte(0), RequestMessageHandler)
+		client.Subscribe(MqttTopicNamespace+"/request", byte(0), RequestMessageHandler)
 	})
 
 	mqttConnect(mqOpts)

@@ -6,12 +6,23 @@ vars:
   GREETING: Hello, World!
 
 tasks:
-  build-app:
-    cmds:
-      - docker run --rm -it -v {{.USER_WORKING_DIR}}:/go/src golang:1.21-bullseye go build -C /go/src -buildvcs=false -o dist/e-ink-dashboard ./...
+  fmt:
+    cmd: go fmt ./...
     silent: true
 
-  build-container:
+  go-build:
+    cmds:
+      - |
+        docker run --rm -it -v {{.USER_WORKING_DIR}}:/go/src golang:1.21-bookworm \
+        go build \
+        -C /go/src \
+        -buildvcs=false \
+        -o dist/e-ink-dashboard ./...
+    silent: true
+
+  docker-build:
+    deps:
+      - go-build
     cmds:
       - docker build -t e-ink-dashboard:latest .
     silent: true

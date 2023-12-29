@@ -13,8 +13,12 @@ import (
 	"google.golang.org/api/calendar/v3"
 )
 
+const (
+	TOKEN_FILE string = "token.json"
+)
+
 func NewOauth2Client() *http.Client {
-	b, err := os.ReadFile(credentialsFile)
+	b, err := os.ReadFile(CredentialsFile)
 	if err != nil {
 		slog.Error("Unable to read client secret file", err)
 	}
@@ -32,8 +36,7 @@ func getClient(config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
-	tokFile := TOKEN_FILE
-	tok, err := tokenFromFile(tokFile)
+	tok, err := tokenFromFile(TOKEN_FILE)
 	if err != nil {
 		getTokenFromWeb(config)
 	}
@@ -50,10 +53,10 @@ func callbackServer(config *oauth2.Config) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		authCode := r.FormValue("code")
 		if authCode == "" {
-      slog.Warn("got request on callback listener that i could not understand",
-        "uri", r.RequestURI)
+			slog.Warn("got request on callback listener that i could not understand",
+				"uri", r.RequestURI)
 			w.WriteHeader(http.StatusBadRequest)
-      w.Write([]byte("No code provided"))
+			w.Write([]byte("No code provided"))
 			return
 		}
 
@@ -62,7 +65,7 @@ func callbackServer(config *oauth2.Config) {
 		if err != nil {
 			slog.Error("Unable to retrieve token from web", "error", err)
 		}
-		saveToken("token.json", tok)
+		saveToken(TOKEN_FILE, tok)
 		w.Write([]byte("OK"))
 		go srv.Shutdown(context.Background())
 		slog.Info("shutting down webserver")
