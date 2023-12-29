@@ -40,6 +40,7 @@ func convertEventTime(e ProcessedEvent) string {
 	if e.AllDay {
 		return "All day"
 	}
-	_, tzOffset := time.Now().Local().Zone()
+	t, _ := time.Parse(time.DateOnly, e.Date)
+	_, tzOffset := t.Zone()
 	return time.Unix(e.Time+int64(tzOffset), 0).Format(time.Kitchen)
 }
