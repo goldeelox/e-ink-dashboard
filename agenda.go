@@ -58,25 +58,26 @@ func (a *Agenda) ImportEvents(calendarId string, maxResults int64) {
 
 func (a *Agenda) Output() bytes.Buffer {
 	a.SortEvents()
-	lines := 0
+	outputLines := 0
 	var output bytes.Buffer
 	var currentDate string
 	for _, event := range a.Events {
-		if lines >= MaxAgendaLines-2 {
-			slog.Info("no more room in the buffer. ignoring the rest", "lines", lines)
+		if outputLines >= MaxAgendaLines-2 {
+			slog.Info("no more room in the buffer. ignoring the rest", "lines", outputLines)
 			break
 		}
 
 		eDate := event.Date()
-		eventLine := make([]string, 0)
+		eventLines := make([]string, 0)
 		if currentDate != eDate {
 			currentDate = eDate
-			eventLine = append(eventLine, "\n", currentDate)
+			eventLines = append(eventLines, "", currentDate)
 		}
 
-		eventLine = append(eventLine, fmt.Sprintf("%8s: %s", event.Time(), event.Summary))
-		lines += len(eventLine)
-		output.WriteString(strings.Join(eventLine, "\n"))
+		s := fmt.Sprintf("%8s: %s", event.Time(), event.Summary)
+		eventLines = append(eventLines, s, "")
+		outputLines += len(eventLines)
+		output.WriteString(strings.Join(eventLines, "\n"))
 	}
 
 	slog.Info("full agenda", "size", output.Len())
