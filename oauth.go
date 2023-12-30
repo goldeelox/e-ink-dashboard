@@ -13,6 +13,7 @@ import (
 	"google.golang.org/api/calendar/v3"
 )
 
+// TODO: rewrite this whole thing
 const (
 	TOKEN_FILE string = "token.json"
 )
@@ -38,12 +39,13 @@ func getClient(config *oauth2.Config) *http.Client {
 	// time.
 	tok, err := tokenFromFile(TOKEN_FILE)
 	if err != nil {
-		getTokenFromWeb(config)
+		tok = getTokenFromWeb(config)
 	}
 	return config.Client(context.Background(), tok)
 }
 
-func callbackServer(config *oauth2.Config) {
+func callbackServer(config *oauth2.Config) *oauth2.Token {
+  var tok *oauth2.Token
 	mux := http.NewServeMux()
 	srv := http.Server{
 		Addr:    ":8080",
@@ -72,14 +74,15 @@ func callbackServer(config *oauth2.Config) {
 	})
 	slog.Info("listening on :8080")
 	srv.ListenAndServe()
+  return tok
 }
 
 // Request a token from the web, then returns the retrieved token.
-func getTokenFromWeb(config *oauth2.Config) {
+func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 	authMsg := fmt.Sprintf("Go to the following link in your browser %v", authURL)
 	slog.Info(authMsg)
-	callbackServer(config)
+	return callbackServer(config)
 }
 
 // Retrieves a token from a local file.
