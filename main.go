@@ -53,10 +53,8 @@ func main() {
 		)
 
 		agenda := NewAgenda(oauthClient, CalendarIds)
-		out := agenda.Generate()
-
 		// send agenda to PUB_TOPIC
-		client.Publish(MqttTopicNamespace+"/response", byte(0), false, out)
+		client.Publish(MqttTopicNamespace+"/response", byte(0), false, agenda.Output())
 	}
 
 	mqOpts.SetOnConnectHandler(func(client mqtt.Client) {

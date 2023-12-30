@@ -35,11 +35,11 @@ func NewAgendaEvent(e *calendar.Event) *AgendaEvent {
 	return agendaEvent
 }
 
-func (e *AgendaEvent) DateString() string {
+func (e *AgendaEvent) Date() string {
 	return e.DateTime.Format("Monday Jan 02")
 }
 
-func (e *AgendaEvent) TimeString() string {
+func (e *AgendaEvent) Time() string {
 	if e.AllDay {
 		return "All day"
 	}

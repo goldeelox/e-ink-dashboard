@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"google.golang.org/api/calendar/v3"
@@ -55,7 +56,7 @@ func (a *Agenda) ImportEvents(calendarId string, maxResults int64) {
 	}
 }
 
-func (a *Agenda) Generate() bytes.Buffer {
+func (a *Agenda) Output() bytes.Buffer {
 	a.SortEvents()
 	lines := 0
 	var output bytes.Buffer
@@ -66,17 +67,16 @@ func (a *Agenda) Generate() bytes.Buffer {
 			break
 		}
 
-		// TODO: this can be better
-		eDate := event.DateString()
+		eDate := event.Date()
+		eventLine := make([]string, 0)
 		if currentDate != eDate {
 			currentDate = eDate
-			heading := "\n" + currentDate + "\n"
-			lines += 2
-			output.WriteString(heading)
+			eventLine = append(eventLine, "\n", currentDate)
 		}
-		summary := fmt.Sprintf("%8s: %s\n", event.TimeString(), event.Summary)
-		output.WriteString(summary)
-		lines++
+
+		eventLine = append(eventLine, fmt.Sprintf("%8s: %s", event.Time(), event.Summary))
+		lines += len(eventLine)
+		output.WriteString(strings.Join(eventLine, "\n"))
 	}
 
 	slog.Info("full agenda", "size", output.Len())
