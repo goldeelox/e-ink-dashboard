@@ -74,8 +74,8 @@ func (a *Agenda) Output() bytes.Buffer {
 			eventLines = append(eventLines, "", currentDate)
 		}
 
-		s := fmt.Sprintf("%8s: %s", event.Time(), event.Summary)
-		eventLines = append(eventLines, s, "")
+		s := fmt.Sprintf("%8s: %s\n", event.Time(), event.Summary)
+		eventLines = append(eventLines, s)
 		outputLines += len(eventLines)
 		output.WriteString(strings.Join(eventLines, "\n"))
 	}
