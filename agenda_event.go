@@ -8,40 +8,41 @@ import (
 )
 
 // TODO: this should include a time.Time field and methods to return strings formatted how we want
-type ProcessedEvent struct {
-	Summary string
-	// date string formatted 2006-01-02
-	Date   string
-	Time   int64
-	AllDay bool
+type AgendaEvent struct {
+	Summary  string
+	AllDay   bool
+	DateTime time.Time
 }
 
-func parseDateAndTimeFromEvent(e *calendar.Event) *ProcessedEvent {
+func NewAgendaEvent(e *calendar.Event) *AgendaEvent {
+	agendaEvent := &AgendaEvent{
+		Summary: e.Summary,
+		AllDay:  false,
+	}
+
 	if e.Start.Date != "" {
 		t, _ := time.ParseInLocation(time.DateOnly, e.Start.Date, time.Local)
-		return &ProcessedEvent{
-			Date:   e.Start.Date,
-			Time:   t.Unix(),
-			AllDay: true,
-		}
+		agendaEvent.AllDay = true
+		agendaEvent.DateTime = t
+		return agendaEvent
 	}
 
 	t, err := time.Parse(time.RFC3339, e.Start.DateTime)
 	if err != nil {
 		slog.Error("unable to parse datetime", "error", err)
 	}
-	return &ProcessedEvent{
-		Date:   t.Format(time.DateOnly),
-		Time:   t.Unix(),
-		AllDay: false,
-	}
+	agendaEvent.DateTime = t
+	return agendaEvent
 }
 
-func convertEventTime(e ProcessedEvent) string {
+func (e *AgendaEvent) DateString() string {
+	return e.DateTime.Format("Monday Jan 02")
+}
+
+func (e *AgendaEvent) TimeString() string {
 	if e.AllDay {
 		return "All day"
 	}
-	t, _ := time.Parse(time.DateOnly, e.Date)
-	_, tzOffset := t.Local().Zone()
-	return time.Unix(e.Time+int64(tzOffset), 0).Format(time.Kitchen)
+
+	return e.DateTime.Format(time.Kitchen)
 }

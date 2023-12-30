@@ -5,6 +5,7 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 )
 
 var ReconnectHandler mqtt.ReconnectHandler = func(client mqtt.Client, opts *mqtt.ClientOptions) {
@@ -27,10 +28,12 @@ var ConnectionLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, 
 }
 
 func mqttClientOptions(broker string) *mqtt.ClientOptions {
+	id, _ := uuid.NewRandom()
+
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(broker)
 	opts.SetAutoReconnect(true)
-	opts.SetClientID("dashboard-agenda-server-test")
+	opts.SetClientID("e-ink-server-" + id.String()[:8])
 	opts.SetConnectTimeout(5 * time.Second)
 	opts.SetConnectionLostHandler(ConnectionLostHandler)
 	opts.SetMaxReconnectInterval(1 * time.Minute)
