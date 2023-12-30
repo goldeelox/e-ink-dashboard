@@ -76,7 +76,7 @@ func callbackServer(config *oauth2.Config) {
 
 // Request a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) {
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 	authMsg := fmt.Sprintf("Go to the following link in your browser %v", authURL)
 	slog.Info(authMsg)
 	callbackServer(config)
