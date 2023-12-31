@@ -44,8 +44,7 @@ func getClient(config *oauth2.Config) *http.Client {
 	return config.Client(context.Background(), tok)
 }
 
-func callbackServer(config *oauth2.Config) *oauth2.Token {
-  var tok *oauth2.Token
+func callbackServer(config *oauth2.Config, token chan *oauth2.Token) {
 	mux := http.NewServeMux()
 	srv := http.Server{
 		Addr:    ":8080",
@@ -67,6 +66,7 @@ func callbackServer(config *oauth2.Config) *oauth2.Token {
 		if err != nil {
 			slog.Error("Unable to retrieve token from web", "error", err)
 		}
+		token <- tok
 		saveToken(TOKEN_FILE, tok)
 		w.Write([]byte("OK"))
 		go srv.Shutdown(context.Background())
@@ -74,7 +74,6 @@ func callbackServer(config *oauth2.Config) *oauth2.Token {
 	})
 	slog.Info("listening on :8080")
 	srv.ListenAndServe()
-  return tok
 }
 
 // Request a token from the web, then returns the retrieved token.
@@ -82,7 +81,10 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 	authMsg := fmt.Sprintf("Go to the following link in your browser %v", authURL)
 	slog.Info(authMsg)
-	return callbackServer(config)
+
+	token := make(chan *oauth2.Token)
+	go callbackServer(config, token)
+	return <-token
 }
 
 // Retrieves a token from a local file.
